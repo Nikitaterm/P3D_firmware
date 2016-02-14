@@ -34,6 +34,8 @@
 #include "stm32f4xx_hal.h"
 #include "cmsis_os.h"
 
+#include "tempSensors.h"
+
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -48,6 +50,8 @@ osThreadId defaultTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
@@ -58,10 +62,9 @@ void StartDefaultTask(void const * argument);
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
-
+double test;
 int main(void)
 {
-
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -75,6 +78,11 @@ int main(void)
   SystemClock_Config();
 
   /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_DMA_Init();
+
+  tempSensorsInit();
+  tempSensorsRun();
 
   /* USER CODE BEGIN 2 */
 
@@ -94,8 +102,8 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
-  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+  //osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  //defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -107,7 +115,7 @@ int main(void)
  
 
   /* Start scheduler */
-  osKernelStart();
+  //osKernelStart();
   
   /* We should never get here as control is now taken by the scheduler */
 
@@ -115,6 +123,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+   test = tempSensorsGet(H_END1);
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
@@ -147,6 +156,25 @@ void SystemClock_Config(void)
 
   /* SysTick_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(SysTick_IRQn, 15, 0);
+}
+
+/** 
+  * Enable DMA controller clock
+  */
+void MX_DMA_Init(void) 
+{
+  /* DMA controller clock enable */
+  __DMA2_CLK_ENABLE();
+}
+
+/** Pinout Configuration
+*/
+void MX_GPIO_Init(void)
+{
+
+  /* GPIO Ports Clock Enable */
+  __GPIOC_CLK_ENABLE();
+
 }
 
 /* USER CODE BEGIN 4 */
