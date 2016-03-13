@@ -36,6 +36,8 @@
 
 #include "tempSensors.h"
 
+#include "pidInstances.h"
+
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -73,16 +75,16 @@ int main(void)
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
   /* Configure the system clock */
   SystemClock_Config();
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-
-  tempSensorsInit();
-  tempSensorsRun();
+  PidInitInstance(MainHotEnd);
+  PidRunInstance(MainHotEnd);
+  PidSetTargetValue(MainHotEnd, 100);
+  
 
   /* USER CODE BEGIN 2 */
 
@@ -102,8 +104,8 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  //osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
-  //defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -115,7 +117,7 @@ int main(void)
  
 
   /* Start scheduler */
-  //osKernelStart();
+  osKernelStart();
   
   /* We should never get here as control is now taken by the scheduler */
 
@@ -123,7 +125,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-   test = tempSensorsGet(H_END1);
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
@@ -174,6 +175,8 @@ void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __GPIOC_CLK_ENABLE();
+  __GPIOB_CLK_ENABLE();
+  __GPIOD_CLK_ENABLE();
 
 }
 
@@ -189,7 +192,7 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    PidIterate(MainHotEnd);
   }
   /* USER CODE END 5 */ 
 }
@@ -209,7 +212,8 @@ void assert_failed(uint8_t* file, uint32_t line)
   /* User can add his own implementation to report the file name and line number,
     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
-
+  GPIOD->MODER |= GPIO_MODER_MODER15_0;
+  return;
 }
 
 #endif

@@ -8,30 +8,45 @@
   ******************************************************************************
   * Project: P3D_firmware
   * Description:
-  * The pid controller is designed to implement high-precision temperature control.
-  * The code contains both the controller and a temperature measurement init. It's
-  * designed to operate with k-type thermocouples.
+  * The pid controller is designed to implement high-precision control of various
+  * parameters. This module contains an abstract interface for different types of
+  * inputs (feed back) and output channels.
   */
+
+#ifndef PID_H_
+#define PID_H_
 
 #include <stdint.h>
 
 /**
-  * @brief PID Init structure definition
+  * @brief PID IO interface
   */
 typedef struct
 {
-  uint32_t OUTPUT_Pin;	/**< Specifies the output GPIO pin (heat element PWM output)
-                          */
+  void(*init)(void);
 
-  uint32_t FB_Pin;      /**< Specifies the temperature feed back input GPIO pin
-                             (analog thermocouple pin) */
+  void(*start)(void);
+
+  void(*stop)(void);
+
+  void(*setValue)(double);
+
+  double(*getValue)(uint8_t);
+
+  void(*deInit)(void);
+
+} PID_IOInterface;
+
+/**
+  * @brief PID configuration structure definition
+  */
+typedef struct
+{
+  double target_val;    /**< Specifies the output value to achieve */
 
   uint32_t CALL_frq;    /**< Specifies the pid controller call frequency, Hz */
 
-  double AMPL_k;        /**< Specifies the thermocouple amplifier gain coefficient */
-
-  double M_AVG_k;       /**< Specifies the thermocouple feed back mooving average
-                             filter coefficient	*/
+  double M_k;           /**< Pid main coefficient */
 
   double P_k;           /**< Pid P-coefficient */
 
@@ -40,14 +55,53 @@ typedef struct
   double D_k;           /**< Pid D-coefficient */
 
   double I_SUM_max;     /**< Specifies the max value of the integral sum */
+  
+  double RES_max;       /**< Maximum result */
 
-  uint32_t OUTPUT_PWM_frq;  /**< Specifies the output PWM frequency, Hz */
+} PID_ConfigTypeDef;
 
-} PID_InitTypeDef;
+typedef struct
+{
+  PID_ConfigTypeDef config;  /**< Config strucutre */
+  
+  PID_IOInterface out;       /**< Output interface */
 
-/* Functions */
+  PID_IOInterface fb;        /**< Input interface */
+
+  void(*init)(void);         /**< Initializer functon */
+
+  float S_i;   /**< Integral sum */
+  float e_pr;  /**< Previouse error value */
+} PID_HandleTypeDef;
 
 /**
-  * @brief Configure the pid controller.
+  * @brief Init the pid controller
   */
-void PID_Init(PID_InitTypeDef* init_config);
+void PID_Init(PID_HandleTypeDef* handle);
+
+/**
+  * @brief Run the pid controller
+  */
+void PID_run(PID_HandleTypeDef* handle);
+
+/**
+  * @brief Stop the pid controller
+  */
+void PID_stop(PID_HandleTypeDef* handle);
+
+/**
+  * @brief Deinit the pid controller
+  */
+void PID_DeInit(PID_HandleTypeDef* handle);
+
+/**
+  * @briefSet the target value
+  */
+void PID_SetTargetvalue(PID_HandleTypeDef* handle, double val);
+
+/**
+  * @brief Iterate the pid controller
+  */
+void PID_update(PID_HandleTypeDef* handle, uint8_t fb_channel);
+
+#endif

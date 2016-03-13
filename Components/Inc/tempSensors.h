@@ -16,6 +16,9 @@
   *   DMA2: stream0, channel 0
   */
 
+#ifndef TEMP_SENSORS_H_
+#define TEMP_SENSORS_H_
+
 /**
   * @brief Define supported channels
   * Add new items to support more channels
@@ -43,6 +46,13 @@ void tempSensorsDeInit(void);
 void tempSensorsRun(void);
 
 /**
+  * @brief Stop the driver
+  */
+void tempSensorsStop(void);
+
+/**
   * @brief Run the driver
   */
-double tempSensorsGet(Channel ch);
+double tempSensorsGet(uint8_t ch);
+
+#endif
