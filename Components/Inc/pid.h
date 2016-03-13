@@ -10,7 +10,7 @@
   * Description:
   * The pid controller is designed to implement high-precision control of various
   * parameters. This module contains an abstract interface for different types of
-  * inputs (feed back) and output channels.
+  * input (feed back) and output channels.
   */
 
 #ifndef PID_H_
@@ -55,15 +55,18 @@ typedef struct
   double D_k;           /**< Pid D-coefficient */
 
   double I_SUM_max;     /**< Specifies the max value of the integral sum */
-  
+
   double RES_max;       /**< Maximum result */
 
 } PID_ConfigTypeDef;
 
+/**
+  * @brief PID handler structure definition
+  */
 typedef struct
 {
   PID_ConfigTypeDef config;  /**< Config strucutre */
-  
+
   PID_IOInterface out;       /**< Output interface */
 
   PID_IOInterface fb;        /**< Input interface */
@@ -71,7 +74,7 @@ typedef struct
   void(*init)(void);         /**< Initializer functon */
 
   float S_i;   /**< Integral sum */
-  float e_pr;  /**< Previouse error value */
+  float e_pr;  /**< Previous error value */
 } PID_HandleTypeDef;
 
 /**
@@ -95,7 +98,7 @@ void PID_stop(PID_HandleTypeDef* handle);
 void PID_DeInit(PID_HandleTypeDef* handle);
 
 /**
-  * @briefSet the target value
+  * @brief Set the target value
   */
 void PID_SetTargetvalue(PID_HandleTypeDef* handle, double val);
 

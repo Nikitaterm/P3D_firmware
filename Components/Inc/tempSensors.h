@@ -51,8 +51,8 @@ void tempSensorsRun(void);
 void tempSensorsStop(void);
 
 /**
-  * @brief Run the driver
+  * @brief Get the temperature value from the specified channel
   */
-double tempSensorsGet(uint8_t ch);
+double tempSensorGetValue(Channel ch);
 
 #endif

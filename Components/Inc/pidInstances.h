@@ -15,8 +15,6 @@
 #ifndef PID_INSTANCES_H_
 #define PID_INSTANCES_H_
 
-#include "pid.h"
-
 /* PID instances */
 typedef enum {
   MainHotEnd

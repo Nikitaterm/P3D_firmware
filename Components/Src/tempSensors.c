@@ -73,7 +73,7 @@ void tempSensorsInit(void)
     __ADC1_CLK_ENABLE();
     __DMA2_CLK_ENABLE();
     ADC_ChannelConfTypeDef sConfig;
-    
+
     /**Configure the global features of the ADC (Clock, Resolution, Data Alignment and
        number of conversion) */
     hadc.Instance = ADC_M;
@@ -127,7 +127,7 @@ void tempSensorsInit(void)
 void tempSensorsDeInit(void) {
   if (status == Stopped) {
     __ADC1_CLK_DISABLE();
-    HAL_DMA_DeInit(hadc.DMA_Handle);  
+    HAL_DMA_DeInit(hadc.DMA_Handle);
 
     status = NotInitialized;
   }
@@ -138,6 +138,7 @@ void tempSensorsRun(void)
   if (status == Stopped) {
     HAL_ADC_Start(&hadc);
     HAL_ADC_Start_DMA(&hadc, (uint32_t*)temp, CH_AMOUNT);
+
     status = Run;
   }
 }
@@ -147,11 +148,12 @@ void tempSensorsStop(void)
   if (status == Run) {
     HAL_ADC_Stop_DMA(&hadc);
     HAL_ADC_Stop(&hadc);
+
     status = Stopped;
   }
 }
 
-/* Reference temperature sensor parameters */
+/** Reference temperature sensor parameters */
 #define V25 0.76
 #define AVG_SLOPE 0.0025
 #define CONST_T 25
@@ -160,9 +162,9 @@ double getRefTemp(void) {
   return (ADC_V_REF*temp[REF_TEMP_SENSOR]/ADC_MAV_V - V25)/AVG_SLOPE + CONST_T;
 }
 
-double tempSensorsGet(uint8_t ch) {
+double tempSensorGetValue(Channel ch) {
   if (status == Run) {
-    double hot_end_v = (ADC_V_REF*temp[ch]/ADC_MAV_V/channels[ch].GAIN_k)*1000;
+    double hot_end_v = (ADC_V_REF*temp[ch]/ADC_MAV_V/channels[ch].GAIN_k)*1000;  //TODO: 1000??
     double alpha, betta;
     int i = 0;
     while (k_type[i] <= hot_end_v)

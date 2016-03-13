@@ -1,6 +1,6 @@
 /**
   ******************************************************************************
-  * @file    pid.h
+  * @file    thermocoupleLookUp.h
   * @author  Nikita lazarev <nikitaterm@gmail.com>
   * @version V1.01
   * @date    09-Feb-2016
