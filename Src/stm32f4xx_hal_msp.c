@@ -130,6 +130,29 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 
   /* USER CODE END TIM10_MspInit 1 */
   }
+  if(htim_base->Instance==TIM9)
+  {
+    // Init the TIM9 and the corresponding GPIO.
+    __TIM9_CLK_ENABLE();
+    GPIO_InitStruct.Pin = GPIO_PIN_2;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF3_TIM9;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    
+    // Init the GPIO PORTA.3 for a step motor enabling/disabling.
+    GPIO_InitTypeDef GPIO_InitStruct_ED;
+    GPIO_InitStruct_ED.Pin = GPIO_PIN_3;
+    GPIO_InitStruct_ED.Mode = GPIO_MODE_OUTPUT_PP;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct_ED);
+    
+    // Init the GPIO PORTA.1 for a step motor dir/
+    GPIO_InitTypeDef GPIO_InitStruct_DID;
+    GPIO_InitStruct_DID.Pin = GPIO_PIN_1;
+    GPIO_InitStruct_DID.Mode = GPIO_MODE_OUTPUT_PP;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct_DID);
+  }
 
 }
 
@@ -150,9 +173,12 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_8);
 
   }
-  /* USER CODE BEGIN TIM10_MspDeInit 1 */
-
-  /* USER CODE END TIM10_MspDeInit 1 */
+  if(htim_base->Instance==TIM9)
+  {
+    __TIM9_CLK_DISABLE();
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_2);
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_3);
+  }
 
 }
 
