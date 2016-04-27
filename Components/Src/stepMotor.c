@@ -11,14 +11,14 @@
 #include "stm32f4xx_hal.h"
 #include "stepMotor.h"
 
-#define TIM_CLK 16          // Specifies the driver's timers clock, MHz
+#define TIM_CLK 168          // Specifies the driver's timers clock, MHz
 /** Specifies the rpm value when we have to increase the timer prescaler.
   * The value should be calculated considering the rpm point of the minimum
   * posible rotation speed with the prescaler = 1 according to the following
   * expression (rounded up to the next integer):
   * Vmin = TIM_CLK*10^6*MOTOR_STEP_DG/(65535*6*MOTOR_STEP_DIV)
   */
-#define RPM_PRSC_POINT 5
+#define RPM_PRSC_POINT 49
 #define MOTOR_STEP_DIV 16   // Specifies the motors step division value
 #define MOTOR_STEP_DG 1.8   // Specifies the motor step, grad
 
@@ -157,8 +157,8 @@ Error SetSpeedAndStart(Axis axis, double rpm)
   {
     return _OutOfRange;
   }
-  err = StopMotor(axis);
-  if (err != _Success) return err;
+  /*err = StopMotor(axis);
+  if (err != _Success) return err;*/
   if (axis == _X)
   {
     X_driver.htim.Init.Prescaler = prsc;
