@@ -12,6 +12,13 @@
 #include "stepMotor.h"
 
 #define TIM_CLK 16          // Specifies the driver's timers clock, MHz
+/** Specifies the rpm value when we have to increase the timer prescaler.
+  * The value should be calculated considering the rpm point of the minimum
+  * posible rotation speed with the prescaler = 1 according to the following
+  * expression (rounded up to the next integer):
+  * Vmin = TIM_CLK*10^6*MOTOR_STEP_DG/(65535*6*MOTOR_STEP_DIV)
+  */
+#define RPM_PRSC_POINT 5
 #define MOTOR_STEP_DIV 16   // Specifies the motors step division value
 #define MOTOR_STEP_DG 1.8   // Specifies the motor step, grad
 
@@ -143,7 +150,9 @@ Error SetSpeedAndStart(Axis axis, double rpm)
   {
     X_driver.dir = 1;
   }
-  uint32_t frq = (uint32_t)(TIM_CLK*1000000*MOTOR_STEP_DG/(6*rpm*MOTOR_STEP_DIV));
+  uint32_t prsc = (uint32_t)(RPM_PRSC_POINT/rpm);
+  if (prsc > 0xffff) prsc = 0xffff;
+  uint32_t frq = (uint32_t)(TIM_CLK*1000000*MOTOR_STEP_DG/(6*rpm*MOTOR_STEP_DIV*(prsc+1)));
   if ( (frq <= 0) || (frq > 0xffff) )
   {
     return _OutOfRange;
@@ -152,6 +161,7 @@ Error SetSpeedAndStart(Axis axis, double rpm)
   if (err != _Success) return err;
   if (axis == _X)
   {
+    X_driver.htim.Init.Prescaler = prsc;
     X_driver.htim.Init.Period = (uint16_t)frq;
     X_driver.sConfigOC.Pulse = (uint16_t)(frq/2);
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, (GPIO_PinState)(X_driver.dir + 1));
