@@ -38,31 +38,39 @@ Error SMotorDriversDeInit(void);
 /**
   * @brief Enable a motor
   */
-void EnableMotor(Axis axis);
+Error EnableMotor(Axis axis);
 
 /**
   * @brief Disable a motor
   */
-void DisableMotor(Axis axis);
+Error DisableMotor(Axis axis);
 
 /**
-  * @brief Enable a motor
+  * @brief Set speed and position for the specified axis.
+  * This function also launches the motor
+  */
+Error SetSpeedAndValue(Axis axis, double rpm, double angle);
+
+/**
+  * @brief Stop a motor
   */
 Error StopMotor(Axis axis);
 
 /**
-  * @brief Set speed for the specified axis and start it
+  * @brief Zero out current angle counter value.
+  * Call this function by the end-stop signal
   */
-Error SetSpeedAndStart(Axis axis, double rpm);
+Error ZeroOutAngleCounter(Axis axis);
 
 /**
-  * @brief Zero out the current angle counter value
+  * @brief Check whether a motor is still working.
+  * Use this function before giving the next task to the motor
   */
-void ZeroOutAngleCounter(Axis axis);
+uint8_t IsMotorBusy(Axis axis);
 
 /**
-  * @brief Get current angle
+  * @brief Get current angle of the specified motor
   */
-double GetAngle(Axis axis);
+double MotorGetAngle(Axis axis);
 
 #endif

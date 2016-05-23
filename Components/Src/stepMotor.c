@@ -34,17 +34,25 @@ typedef struct
 
   TIM_OC_InitTypeDef sConfigOC;   /**< Configuration structure */
 
+  int64_t set_angle;              /**< Stores set angle value, in steps */
+
   int64_t angle;                  /**< Stores the current angle value, in steps */
+
+  uint8_t busy;                   /**< The task is being executed */
 
   int8_t dir;                     /**< Stores the current direction */
 
 } StMotor_HandleTypeDef;
 
-StMotor_HandleTypeDef X_driver;   // X-axis driver 's handler
+StMotor_HandleTypeDef X_driver;   // X-axis driver 's handler TODOst
 void TIM1_BRK_TIM9_IRQHandler(void)
 {
   __HAL_TIM_CLEAR_FLAG(&X_driver.htim, TIM_FLAG_CC1);
   X_driver.angle += X_driver.dir;
+  if (X_driver.angle == X_driver.set_angle)
+  {
+    StopMotor(_X);
+  }
 }
 
 static void InitIRQ(void)
@@ -66,6 +74,10 @@ static Error InitOutput(void)
   X_driver.sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   X_driver.sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
 
+  if (HAL_TIM_PWM_ConfigChannel(&X_driver.htim, &X_driver.sConfigOC, TIM_CHANNEL_1)
+      != HAL_OK) return _HALError;
+  if (HAL_TIM_PWM_Init(&X_driver.htim) != HAL_OK) return _HALError;
+
   return _Success;
 }
 
@@ -83,6 +95,42 @@ static Error DeInitOutput(void)
   return _Success;
 }
 
+static Error XSetSpeedAndValue(StMotor_HandleTypeDef* driver, double rpm, double angle)
+{
+  if (rpm < 0)
+  {
+    return _OutOfRange;
+  }
+  Error err = _Success;
+  driver->set_angle = (int32_t)(angle*MOTOR_STEP_DIV/MOTOR_STEP_DG);
+  if (driver->set_angle - driver->angle < 0)
+  {
+    driver->dir = -1;
+  }
+  else if (rpm > 0)
+  {
+    driver->dir = 1;
+  } else return _OutOfRange;
+  uint32_t prsc = (uint32_t)(RPM_PRSC_POINT/rpm);
+  if (prsc > 0xffff) prsc = 0xffff;
+  uint32_t frq = (uint32_t)(TIM_CLK*1000000*MOTOR_STEP_DG/(6*rpm*MOTOR_STEP_DIV*(prsc+1)));
+  if ( (frq <= 0) || (frq > 0xffff) )
+  {
+    return _OutOfRange;
+  }
+  driver->htim.Init.Prescaler = prsc;
+  driver->htim.Init.Period = (uint16_t)frq;
+  driver->sConfigOC.Pulse = (uint16_t)(frq/2);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, (GPIO_PinState)(driver->dir + 1));
+  driver->htim.Instance->PSC = driver->htim.Init.Prescaler;
+  driver->htim.Instance->ARR = driver->htim.Init.Period;
+  driver->htim.Instance->CCR1 = driver->sConfigOC.Pulse;
+  if (HAL_TIM_PWM_Start_IT(&driver->htim, TIM_CHANNEL_1) != HAL_OK) return _HALError;
+  driver->busy = 1;
+  if (err != _Success) return err;
+  return _Success;
+}
+
 /* Public functions */
 Error SMotorDriversInit()
 {
@@ -90,41 +138,44 @@ Error SMotorDriversInit()
   return InitOutput();
 }
 
-Error SMotorDriversDeInit()
+Error SMotorDriversDeInit()  //TODO: check the value returned everywhere it's used
 {
   DeInitIRQ();
   return DeInitOutput();
 }
 
-void EnableMotor(Axis axis)
+Error EnableMotor(Axis axis)
 {
   // X-axis
   if (axis == _X)
   {
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3, GPIO_PIN_RESET);
+    return _Success;
   }
+  return _OutOfRange;
 }
 
-void DisableMotor(Axis axis)
+Error DisableMotor(Axis axis)
 {
   // X-axis
   if (axis == _X)
   {
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3, GPIO_PIN_SET);
+    return _Success;
   }
+  return _OutOfRange;
 }
 
-static Error StartMotor(Axis axis)
+Error StartMotor(Axis axis)
 {
   // X-axis
   if (axis == _X)
   {
-    if (HAL_TIM_PWM_ConfigChannel(&X_driver.htim, &X_driver.sConfigOC, TIM_CHANNEL_1)
-           != HAL_OK) return _HALError;
-    if (HAL_TIM_PWM_Init(&X_driver.htim) != HAL_OK) return _HALError;
     if (HAL_TIM_PWM_Start_IT(&X_driver.htim, TIM_CHANNEL_1) != HAL_OK) return _HALError;
+    X_driver.busy = 1;
+    return _Success;
   }
-  return _Success;
+  return _OutOfRange;
 }
 
 Error StopMotor(Axis axis)
@@ -134,57 +185,48 @@ Error StopMotor(Axis axis)
   {
     if (HAL_TIM_PWM_Stop_IT(&X_driver.htim, TIM_CHANNEL_1) != HAL_OK) return _HALError;
     __HAL_TIM_CLEAR_FLAG(&X_driver.htim, TIM_FLAG_CC1);
+    X_driver.busy = 0;
+    return _Success;
   }
-  return _Success;
+  return _OutOfRange;
 }
 
-Error SetSpeedAndStart(Axis axis, double rpm)
+Error SetSpeedAndValue(Axis axis, double rpm, double angle)
 {
-  Error err = _Success;
-  if (rpm < 0)
+  switch(axis)
   {
-    rpm *= -1;
-    X_driver.dir = -1;
+    case _X: return XSetSpeedAndValue(&X_driver, rpm, angle);
   }
-  else
-  {
-    X_driver.dir = 1;
-  }
-  uint32_t prsc = (uint32_t)(RPM_PRSC_POINT/rpm);
-  if (prsc > 0xffff) prsc = 0xffff;
-  uint32_t frq = (uint32_t)(TIM_CLK*1000000*MOTOR_STEP_DG/(6*rpm*MOTOR_STEP_DIV*(prsc+1)));
-  if ( (frq <= 0) || (frq > 0xffff) )
-  {
-    return _OutOfRange;
-  }
-  /*err = StopMotor(axis);
-  if (err != _Success) return err;*/
-  if (axis == _X)
-  {
-    X_driver.htim.Init.Prescaler = prsc;
-    X_driver.htim.Init.Period = (uint16_t)frq;
-    X_driver.sConfigOC.Pulse = (uint16_t)(frq/2);
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, (GPIO_PinState)(X_driver.dir + 1));
-  }
-  err = StartMotor(axis);
-  if (err != _Success) return err;
-  return _Success;
+  return _OutOfRange;
 }
 
-void ZeroOutAngleCounter(Axis axis)
+Error ZeroOutAngleCounter(Axis axis)
 {
   // X-axis
-  if (axis == _X)
+  if (axis == _X)   // TODO: Switch statement!
   {
     X_driver.angle = 0;
+    return _Success;
   }
+  return _OutOfRange;
 }
 
-double GetAngle(Axis axis)
+uint8_t IsMotorBusy(Axis axis)
 {
   // X-axis
   if (axis == _X)
   {
-    return X_driver.angle * MOTOR_STEP_DG/MOTOR_STEP_DIV;
+    return X_driver.busy;
   }
+  return _OutOfRange;
+}
+
+double MotorGetAngle(Axis axis)
+{
+  // X-axis
+  if (axis == _X)
+  {
+    return X_driver.angle*MOTOR_STEP_DG/MOTOR_STEP_DIV;
+  }
+  // TODO: return
 }

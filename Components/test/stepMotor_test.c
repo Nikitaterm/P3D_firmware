@@ -38,16 +38,35 @@ static Error FinishTests()
   */
 static Error TestAngleFeedBack()
 {
+  Error err;
   EnableMotor(_X);
-  if (SetSpeedAndStart(_X, 220) != _Success) return _UnitTestError;
-  vTaskDelay(5000);
-  if (SetSpeedAndStart(_X, -220) != _Success) return _UnitTestError;
-  vTaskDelay(5000);
-  if (StopMotor(_X) != _Success) return _UnitTestError;
+  err = SetSpeedAndValue(_X, 100, 360);
+  if (err != _Success) goto e;
+  while(IsMotorBusy(_X));
+  err = assertTrue(MotorGetAngle(_X) == 360);
+  if (err != _Success) goto e;
+  err = SetSpeedAndValue(_X, 220, 720);
+  if (err != _Success) goto e;
+  while(IsMotorBusy(_X));
+  err = assertTrue(MotorGetAngle(_X) == 720);
+  if (err != _Success) goto e;
+  err = SetSpeedAndValue(_X, 220, -720);
+  if (err != _Success) goto e;
+  while(IsMotorBusy(_X));
+  err = assertTrue(MotorGetAngle(_X) == -720);
+  if (err != _Success) goto e;
+  err = SetSpeedAndValue(_X, 220, 0);
+  if (err != _Success) goto e;
+  while(IsMotorBusy(_X));
+  err = StopMotor(_X);
+  if (err != _Success) goto e;
   DisableMotor(_X);
-  return assertTrue(GetAngle(_X) == 0);
+  return assertTrue(MotorGetAngle(_X) == 0);
+  e:
+  return err;
 }
 
+// TODO: more tests!
 Error MotorTestAll(void)
 {
   if (PrepareForTests() != _Success) return _UnitTestError;
