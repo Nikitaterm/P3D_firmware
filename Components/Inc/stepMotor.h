@@ -10,6 +10,10 @@
   * Description:
   * Step motor driver implements low-level control interfaces suitable
   * for middl- and high- level layers.
+  ****Resources being consumed****
+  * TIM9 (with interrupts)
+  * TIM10 (with interrupts)
+  * TIM11 (with interrupts)
   */
 
 #ifndef STEP_MOTOR_H_
