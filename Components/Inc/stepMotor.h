@@ -23,7 +23,8 @@
 typedef enum
 {
   _X,
-  _Y
+  _Y,
+  _Z
 } Axis;
 
 /**

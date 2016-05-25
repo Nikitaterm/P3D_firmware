@@ -28,8 +28,8 @@ static PID_HandleTypeDef pid_instances[PID_INST_AMOUNT];  // The instances
 static TIM_HandleTypeDef htim10;
 static TIM_OC_InitTypeDef sConfigOC;
 
-#define TIM10_CLK    16     // Specifies the TIM10 clock, MHz
-#define TIM10_PRSC   10     // Specifies the TIM10 prescaler value
+#define TIM10_CLK    16     // Specifies the TIM10 clock, MHz            // TODO: use TIM12 instead!!!!!
+#define TIM10_PRSC   10     // Specifies the TIM10 prescaler value       // TODO: use TIM12 instead!!!!!
 
 #define OUT_PWM_FRQ  1000   // Specifies the desired pwm output frequency, Hz
 

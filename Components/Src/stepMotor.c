@@ -44,7 +44,7 @@ typedef struct
 
 } StMotor_HandleTypeDef;
 
-StMotor_HandleTypeDef X_driver;   // X-axis driver's handler TODOst
+static StMotor_HandleTypeDef X_driver;   // X-axis driver's handler
 void TIM1_BRK_TIM9_IRQHandler(void)
 {
   __HAL_TIM_CLEAR_FLAG(&X_driver.htim, TIM_FLAG_CC1);
@@ -55,7 +55,7 @@ void TIM1_BRK_TIM9_IRQHandler(void)
   }
 }
 
-StMotor_HandleTypeDef Y_driver;          // Y-axis driver's handler
+static StMotor_HandleTypeDef Y_driver;          // Y-axis driver's handler
 void TIM1_TRG_COM_TIM11_IRQHandler(void)
 {
   __HAL_TIM_CLEAR_FLAG(&Y_driver.htim, TIM_FLAG_CC1);
@@ -66,46 +66,46 @@ void TIM1_TRG_COM_TIM11_IRQHandler(void)
   }
 }
 
+static StMotor_HandleTypeDef Z_driver;          // Z-axis driver's handler
+void TIM1_UP_TIM10_IRQHandler(void)
+{
+  __HAL_TIM_CLEAR_FLAG(&Z_driver.htim, TIM_FLAG_CC1);
+  Z_driver.angle += Z_driver.dir;
+  if (Z_driver.angle == Z_driver.set_angle)
+  {
+    StopMotor(_Z);
+  }
+}
+
 static void InitIRQ(void)
 {
   // X-axis
   HAL_NVIC_SetPriority(TIM1_BRK_TIM9_IRQn, ANGLE_IRQ_PR_PRIORITY, ANGLE_IRQ_SUB_PRIORITY);
   HAL_NVIC_EnableIRQ(TIM1_BRK_TIM9_IRQn);
-  
+
   // Y-axis
   HAL_NVIC_SetPriority(TIM1_TRG_COM_TIM11_IRQn, ANGLE_IRQ_PR_PRIORITY, ANGLE_IRQ_SUB_PRIORITY);
   HAL_NVIC_EnableIRQ(TIM1_TRG_COM_TIM11_IRQn);
+
+  // Z-axis
+  HAL_NVIC_SetPriority(TIM1_UP_TIM10_IRQn, ANGLE_IRQ_PR_PRIORITY, ANGLE_IRQ_SUB_PRIORITY);
+  HAL_NVIC_EnableIRQ(TIM1_UP_TIM10_IRQn);
 }
 
-static Error InitOutput(void)
+static Error InitOutput(StMotor_HandleTypeDef *driver, TIM_TypeDef *timer)
 {
-  // X-axis
-  X_driver.htim.Instance = TIM9;
-  X_driver.htim.Init.CounterMode = TIM_COUNTERMODE_UP;
-  X_driver.htim.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  if (HAL_TIM_Base_Init(&X_driver.htim) != HAL_OK) return _HALError;
+  driver->htim.Instance = timer;
+  driver->htim.Init.CounterMode = TIM_COUNTERMODE_UP;
+  driver->htim.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  if (HAL_TIM_Base_Init(&driver->htim) != HAL_OK) return _HALError;
 
-  X_driver.sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  X_driver.sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  X_driver.sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  driver->sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  driver->sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  driver->sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
 
-  if (HAL_TIM_PWM_ConfigChannel(&X_driver.htim, &X_driver.sConfigOC, TIM_CHANNEL_1)
+  if (HAL_TIM_PWM_ConfigChannel(&driver->htim, &driver->sConfigOC, TIM_CHANNEL_1)
       != HAL_OK) return _HALError;
-  if (HAL_TIM_PWM_Init(&X_driver.htim) != HAL_OK) return _HALError;
-  
-  // Y-axis
-  Y_driver.htim.Instance = TIM11;
-  Y_driver.htim.Init.CounterMode = TIM_COUNTERMODE_UP;
-  Y_driver.htim.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  if (HAL_TIM_Base_Init(&Y_driver.htim) != HAL_OK) return _HALError;
-
-  Y_driver.sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  Y_driver.sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  Y_driver.sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-
-  if (HAL_TIM_PWM_ConfigChannel(&Y_driver.htim, &Y_driver.sConfigOC, TIM_CHANNEL_1)
-      != HAL_OK) return _HALError;
-  if (HAL_TIM_PWM_Init(&Y_driver.htim) != HAL_OK) return _HALError;
+  if (HAL_TIM_PWM_Init(&driver->htim) != HAL_OK) return _HALError;
 
   return _Success;
 }
@@ -114,20 +114,33 @@ static void DeInitIRQ(void)
 {
   // X-axis
   HAL_NVIC_DisableIRQ(TIM1_BRK_TIM9_IRQn);
-  
+
   //Y-axis
   HAL_NVIC_DisableIRQ(TIM1_TRG_COM_TIM11_IRQn);
+
+  //Z-axis
+  HAL_NVIC_DisableIRQ(TIM1_UP_TIM10_IRQn);
 }
 
-static Error DeInitOutput(void)
+static Error DeInitOutput(StMotor_HandleTypeDef *driver)
 {
-  // X-axis
-  if (HAL_TIM_Base_DeInit(&X_driver.htim) != HAL_OK) return _HALError;
-  if (HAL_TIM_PWM_DeInit(&X_driver.htim) != HAL_OK) return _HALError;
-  
-  // Y-axis
-  if (HAL_TIM_Base_DeInit(&Y_driver.htim) != HAL_OK) return _HALError;
-  if (HAL_TIM_PWM_DeInit(&Y_driver.htim) != HAL_OK) return _HALError;
+  if (HAL_TIM_Base_DeInit(&driver->htim) != HAL_OK) return _HALError;
+  if (HAL_TIM_PWM_DeInit(&driver->htim) != HAL_OK) return _HALError;
+  return _Success;
+}
+
+static Error MotorStart(StMotor_HandleTypeDef* driver)
+{
+  if (HAL_TIM_PWM_Start_IT(&driver->htim, TIM_CHANNEL_1) != HAL_OK) return _HALError;
+  driver->busy = 1;
+  return _Success;
+}
+
+static Error MotorStop(StMotor_HandleTypeDef* driver)
+{
+  if (HAL_TIM_PWM_Stop_IT(&driver->htim, TIM_CHANNEL_1) != HAL_OK) return _HALError;
+  __HAL_TIM_CLEAR_FLAG(&driver->htim, TIM_FLAG_CC1);
+  driver->busy = 0;
   return _Success;
 }
 
@@ -165,6 +178,10 @@ static Error SetSpeedAndValue(StMotor_HandleTypeDef* driver, double rpm, double 
   {
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, (GPIO_PinState)(driver->dir + 1));
   }
+  if (driver == &Z_driver)
+  {
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, (GPIO_PinState)(driver->dir + 1));
+  }
   driver->htim.Instance->PSC = driver->htim.Init.Prescaler;
   driver->htim.Instance->ARR = driver->htim.Init.Period;
   driver->htim.Instance->CCR1 = driver->sConfigOC.Pulse;
@@ -178,13 +195,31 @@ static Error SetSpeedAndValue(StMotor_HandleTypeDef* driver, double rpm, double 
 Error SMotorDriversInit()
 {
   InitIRQ();
-  return InitOutput();
+  Error err;
+  err = InitOutput(&X_driver, TIM9);
+  if (err != _Success) goto e;
+  err = InitOutput(&Y_driver, TIM11);
+  if (err != _Success) goto e;
+  err = InitOutput(&Z_driver, TIM10);
+  if (err != _Success) goto e;
+  return _Success;
+  e:
+  return err;
 }
 
-Error SMotorDriversDeInit()  //TODO: check the value returned everywhere it's used
+Error SMotorDriversDeInit()
 {
   DeInitIRQ();
-  return DeInitOutput();
+  Error err;
+  err = DeInitOutput(&X_driver);
+  if (err != _Success) goto e;
+  err = DeInitOutput(&Y_driver);
+  if (err != _Success) goto e;
+  err = DeInitOutput(&Z_driver);
+  if (err != _Success) goto e;
+  return _Success;
+  e:
+  return err;
 }
 
 Error EnableMotor(Axis axis)
@@ -193,6 +228,7 @@ Error EnableMotor(Axis axis)
   {
     case _X: HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3, GPIO_PIN_RESET); break;
     case _Y: HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_RESET); break;
+    case _Z: HAL_GPIO_WritePin(GPIOA, GPIO_PIN_9, GPIO_PIN_RESET); break;
     default: return _OutOfRange;
   }
   return _Success;
@@ -204,6 +240,7 @@ Error DisableMotor(Axis axis)
   {
     case _X: HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3, GPIO_PIN_SET); break;
     case _Y: HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET); break;
+    case _Z: HAL_GPIO_WritePin(GPIOA, GPIO_PIN_9, GPIO_PIN_SET); break;
     default: return _OutOfRange;
   }
   return _Success;
@@ -213,44 +250,22 @@ Error StartMotor(Axis axis)
 {
   switch(axis)
   {
-    case _X:
-    {
-      if (HAL_TIM_PWM_Start_IT(&X_driver.htim, TIM_CHANNEL_1) != HAL_OK) return _HALError;
-      X_driver.busy = 1;
-      break;
-    }
-    case _Y:
-    {
-      if (HAL_TIM_PWM_Start_IT(&Y_driver.htim, TIM_CHANNEL_1) != HAL_OK) return _HALError;
-      Y_driver.busy = 1;
-      break;
-    }
+    case _X: return MotorStart(&X_driver);
+    case _Y: return MotorStart(&Y_driver);
+    case _Z: return MotorStart(&Z_driver);
     default: return _OutOfRange;
   }
-  return _Success;
 }
 
 Error StopMotor(Axis axis)
 {
   switch(axis)
   {
-    case _X:
-    {
-      if (HAL_TIM_PWM_Stop_IT(&X_driver.htim, TIM_CHANNEL_1) != HAL_OK) return _HALError;
-      __HAL_TIM_CLEAR_FLAG(&X_driver.htim, TIM_FLAG_CC1);
-      X_driver.busy = 0;
-      break;
-    }
-    case _Y:
-    {
-      if (HAL_TIM_PWM_Stop_IT(&Y_driver.htim, TIM_CHANNEL_1) != HAL_OK) return _HALError;
-      __HAL_TIM_CLEAR_FLAG(&Y_driver.htim, TIM_FLAG_CC1);
-      Y_driver.busy = 0;
-      break;
-    }
+    case _X: return MotorStop(&X_driver);
+    case _Y: return MotorStop(&Y_driver);
+    case _Z: return MotorStop(&Z_driver);
     default: return _OutOfRange;
   }
-  return _Success;
 }
 
 Error MotorSetSpeedAndValue(Axis axis, double rpm, double angle)
@@ -259,6 +274,7 @@ Error MotorSetSpeedAndValue(Axis axis, double rpm, double angle)
   {
     case _X: return SetSpeedAndValue(&X_driver, rpm, angle);
     case _Y: return SetSpeedAndValue(&Y_driver, rpm, angle);
+    case _Z: return SetSpeedAndValue(&Z_driver, rpm, angle);
     default: return _OutOfRange;
   }
 }
@@ -269,6 +285,7 @@ Error ZeroOutAngleCounter(Axis axis)
   {
     case _X: X_driver.angle = 0; break;
     case _Y: Y_driver.angle = 0; break;
+    case _Z: Z_driver.angle = 0; break;
     default: return _OutOfRange;
   }
   return _Success;
@@ -280,6 +297,7 @@ uint8_t IsMotorBusy(Axis axis)
   {
     case _X: return X_driver.busy;
     case _Y: return Y_driver.busy;
+    case _Z: return Z_driver.busy;
     default: return _OutOfRange;
   }
 }
@@ -290,6 +308,7 @@ double MotorGetAngle(Axis axis)
   {
     case _X: return X_driver.angle*MOTOR_STEP_DG/MOTOR_STEP_DIV;
     case _Y: return Y_driver.angle*MOTOR_STEP_DG/MOTOR_STEP_DIV;
+    case _Z: return Z_driver.angle*MOTOR_STEP_DG/MOTOR_STEP_DIV;
     // default: return _OutOfRange;  // TODO: think!
   }
 }

@@ -39,7 +39,8 @@ static Error FinishTests()
 static Error TestAngleFeedBack(Axis axis)
 {
   Error err;
-  EnableMotor(axis);
+  err = EnableMotor(axis);
+  if (err != _Success) goto e;
   err = MotorSetSpeedAndValue(axis, 100, 360);
   if (err != _Success) goto e;
   while(IsMotorBusy(axis));
@@ -60,7 +61,8 @@ static Error TestAngleFeedBack(Axis axis)
   while(IsMotorBusy(axis));
   err = StopMotor(axis);
   if (err != _Success) goto e;
-  DisableMotor(axis);
+  err = DisableMotor(axis);
+  if (err != _Success) goto e;
   return assertTrue(MotorGetAngle(axis) == 0);
   e:
   return err;
@@ -72,6 +74,7 @@ Error MotorTestAll(void)
   if (PrepareForTests() != _Success) return _UnitTestError;
   if (TestAngleFeedBack(_X) != _Success) return _UnitTestError;
   if (TestAngleFeedBack(_Y) != _Success) return _UnitTestError;
+  if (TestAngleFeedBack(_Z) != _Success) return _UnitTestError;
   if (FinishTests() != _Success) return _UnitTestError;
   return _Success;  
 }
