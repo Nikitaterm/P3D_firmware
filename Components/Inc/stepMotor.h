@@ -22,7 +22,8 @@
   */
 typedef enum
 {
-  _X
+  _X,
+  _Y
 } Axis;
 
 /**
@@ -49,7 +50,7 @@ Error DisableMotor(Axis axis);
   * @brief Set speed and position for the specified axis.
   * This function also launches the motor
   */
-Error SetSpeedAndValue(Axis axis, double rpm, double angle);
+Error MotorSetSpeedAndValue(Axis axis, double rpm, double angle);
 
 /**
   * @brief Stop a motor

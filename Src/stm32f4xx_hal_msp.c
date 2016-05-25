@@ -153,6 +153,30 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
     GPIO_InitStruct_DID.Mode = GPIO_MODE_OUTPUT_PP;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct_DID);
   }
+  
+  if(htim_base->Instance==TIM11)
+  {
+    // Init the TIM11 and the corresponding GPIO.
+    __TIM11_CLK_ENABLE();
+    GPIO_InitStruct.Pin = GPIO_PIN_9;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF3_TIM11;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    
+    // Init the GPIO PORTA.6 for a step motor enabling/disabling.
+    GPIO_InitTypeDef GPIO_InitStruct_ED;
+    GPIO_InitStruct_ED.Pin = GPIO_PIN_6;
+    GPIO_InitStruct_ED.Mode = GPIO_MODE_OUTPUT_PP;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct_ED);
+    
+    // Init the GPIO PORTA.4 for a step motor dir/
+    GPIO_InitTypeDef GPIO_InitStruct_DID;
+    GPIO_InitStruct_DID.Pin = GPIO_PIN_4;
+    GPIO_InitStruct_DID.Mode = GPIO_MODE_OUTPUT_PP;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct_DID);
+  }
 
 }
 

@@ -36,32 +36,32 @@ static Error FinishTests()
   * @brief This test checks correctness of the angle feed back implementation.
   * In case of the assertion error, check accuracy of the vTaskDelay() function first.
   */
-static Error TestAngleFeedBack()
+static Error TestAngleFeedBack(Axis axis)
 {
   Error err;
-  EnableMotor(_X);
-  err = SetSpeedAndValue(_X, 100, 360);
+  EnableMotor(axis);
+  err = MotorSetSpeedAndValue(axis, 100, 360);
   if (err != _Success) goto e;
-  while(IsMotorBusy(_X));
-  err = assertTrue(MotorGetAngle(_X) == 360);
+  while(IsMotorBusy(axis));
+  err = assertTrue(MotorGetAngle(axis) == 360);
   if (err != _Success) goto e;
-  err = SetSpeedAndValue(_X, 220, 720);
+  err = MotorSetSpeedAndValue(axis, 220, 720);
   if (err != _Success) goto e;
-  while(IsMotorBusy(_X));
-  err = assertTrue(MotorGetAngle(_X) == 720);
+  while(IsMotorBusy(axis));
+  err = assertTrue(MotorGetAngle(axis) == 720);
   if (err != _Success) goto e;
-  err = SetSpeedAndValue(_X, 220, -720);
+  err = MotorSetSpeedAndValue(axis, 220, -720);
   if (err != _Success) goto e;
-  while(IsMotorBusy(_X));
-  err = assertTrue(MotorGetAngle(_X) == -720);
+  while(IsMotorBusy(axis));
+  err = assertTrue(MotorGetAngle(axis) == -720);
   if (err != _Success) goto e;
-  err = SetSpeedAndValue(_X, 220, 0);
+  err = MotorSetSpeedAndValue(axis, 220, 0);
   if (err != _Success) goto e;
-  while(IsMotorBusy(_X));
-  err = StopMotor(_X);
+  while(IsMotorBusy(axis));
+  err = StopMotor(axis);
   if (err != _Success) goto e;
-  DisableMotor(_X);
-  return assertTrue(MotorGetAngle(_X) == 0);
+  DisableMotor(axis);
+  return assertTrue(MotorGetAngle(axis) == 0);
   e:
   return err;
 }
@@ -70,7 +70,8 @@ static Error TestAngleFeedBack()
 Error MotorTestAll(void)
 {
   if (PrepareForTests() != _Success) return _UnitTestError;
-  if (TestAngleFeedBack() != _Success) return _UnitTestError;
+  if (TestAngleFeedBack(_X) != _Success) return _UnitTestError;
+  if (TestAngleFeedBack(_Y) != _Success) return _UnitTestError;
   if (FinishTests() != _Success) return _UnitTestError;
   return _Success;  
 }
