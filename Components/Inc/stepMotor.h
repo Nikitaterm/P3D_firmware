@@ -19,6 +19,8 @@
 #ifndef STEP_MOTOR_H_
 #define STEP_MOTOR_H_
 
+#include "stdint.h"
+
 #include "error.h"
 
 /**
