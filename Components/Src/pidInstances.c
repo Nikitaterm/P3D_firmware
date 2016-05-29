@@ -25,54 +25,54 @@ static PID_HandleTypeDef pid_instances[PID_INST_AMOUNT];  // The instances
   * This instance controls the main hot end's temperature.
   */
 
-static TIM_HandleTypeDef htim10;
+static TIM_HandleTypeDef htim12;
 static TIM_OC_InitTypeDef sConfigOC;
 
-#define TIM10_CLK    16     // Specifies the TIM10 clock, MHz            // TODO: use TIM12 instead!!!!!
-#define TIM10_PRSC   10     // Specifies the TIM10 prescaler value       // TODO: use TIM12 instead!!!!!
+#define TIM12_CLK    84     // Specifies the TIM12 clock, MHz
+#define TIM12_PRSC   10     // Specifies the TIM12 prescaler value
 
 #define OUT_PWM_FRQ  1000   // Specifies the desired pwm output frequency, Hz
 
-#define TIM10_PER TIM10_CLK*1000000/(TIM10_PRSC*OUT_PWM_FRQ)
-#define MAX_PULSE TIM10_PER
+#define TIM12_PER TIM12_CLK*1000000/(TIM12_PRSC*OUT_PWM_FRQ)
+#define MAX_PULSE TIM12_PER
 
 /** Initializarion of the output channel for the controller mainHotEnd_*/
 static void mainHotEnd_initOutput()
 {
-  htim10.Instance = TIM10;
-  htim10.Init.Prescaler = TIM10_PRSC;
-  htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim10.Init.Period = TIM10_PER;
-  htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  HAL_TIM_Base_Init(&htim10);
-  HAL_TIM_PWM_Init(&htim10);
+  htim12.Instance = TIM12;
+  htim12.Init.Prescaler = TIM12_PRSC;
+  htim12.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim12.Init.Period = TIM12_PER;
+  htim12.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  HAL_TIM_Base_Init(&htim12);
+  HAL_TIM_PWM_Init(&htim12);
 
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
   sConfigOC.Pulse = MAX_PULSE;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  HAL_TIM_PWM_ConfigChannel(&htim10, &sConfigOC, TIM_CHANNEL_1);
+  HAL_TIM_PWM_ConfigChannel(&htim12, &sConfigOC, TIM_CHANNEL_1);
 }
 
 static void mainHotEnd_startOutput()
 {
-  HAL_TIM_Base_Start(&htim10);
-  HAL_TIM_PWM_Start(&htim10, TIM_CHANNEL_1);
+  HAL_TIM_Base_Start(&htim12);
+  HAL_TIM_PWM_Start(&htim12, TIM_CHANNEL_1);
 }
 
 static void mainHotEnd_stopOutput()
 {
-  HAL_TIM_Base_Stop(&htim10);
-  HAL_TIM_PWM_Stop(&htim10, TIM_CHANNEL_1);
+  HAL_TIM_Base_Stop(&htim12);
+  HAL_TIM_PWM_Stop(&htim12, TIM_CHANNEL_1);
 }
 
 /** setOutout function for the mainHotEnd_ controller */
 static void mainHotEnd_setOutput(double val)
 {
   sConfigOC.Pulse = MAX_PULSE*(1 - val);
-  HAL_TIM_PWM_Stop(&htim10, TIM_CHANNEL_1);
-  HAL_TIM_PWM_ConfigChannel(&htim10, &sConfigOC, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim10, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Stop(&htim12, TIM_CHANNEL_1);
+  HAL_TIM_PWM_ConfigChannel(&htim12, &sConfigOC, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim12, TIM_CHANNEL_1);
 }
 
 /** Initialize the pid instance */
