@@ -156,10 +156,20 @@ static Error SetSpeedAndValue(StMotor_HandleTypeDef* driver, double rpm, double 
   {
     driver->dir = -1;
   }
-  else if (rpm > 0)
+  else if (driver->set_angle - driver->angle > 0)
   {
     driver->dir = 1;
-  } else return _OutOfRange;
+  } else if (rpm == 0)
+  {
+    return _Success;  // We don't need to move
+  } else
+  {
+    return _IncompatibleArgs;
+  }
+  if (rpm == 0)
+  {
+    return _IncompatibleArgs;
+  }
   uint32_t prsc = (uint32_t)(RPM_PRSC_POINT/rpm);
   if (prsc > 0xffff) prsc = 0xffff;
   uint32_t frq = (uint32_t)(TIM_CLK*1000000*MOTOR_STEP_DG/(6*rpm*MOTOR_STEP_DIV*(prsc+1)));

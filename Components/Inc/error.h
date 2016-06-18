@@ -20,7 +20,8 @@ typedef enum
   _Success,
   _HALError,
   _OutOfRange,
-  _UnitTestError
+  _UnitTestError,
+  _IncompatibleArgs
 
 } Error;
 
