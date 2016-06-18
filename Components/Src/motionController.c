@@ -10,11 +10,12 @@
 
 // TODO: This module hasn't been tested yet!!!
 
+#include "stm32f4xx_hal.h"
+
 #include "motionController.h"
+#include "stepMotor.h"
 
 #include "math.h"
-
-#include "stepMotor.h"
 
 /** Specifies the length (in mm) of all mechanism elements.
   * Please, refer to the Kinematic.png file for the
@@ -39,6 +40,25 @@
 
 double curr_X, curr_Y, curr_Z;
 
+void InitEndStops()
+{
+  GPIO_InitTypeDef GPIO_InitStruct;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+
+  // Init the GPIO PORTE.5 for the X-axis end stop.
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  // Init the GPIO PORTE.6 for the Y-axis end stop.
+  GPIO_InitStruct.Pin = GPIO_PIN_6;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  // Init the GPIO PORTE.7 for the Z-axis end stop.
+  GPIO_InitStruct.Pin = GPIO_PIN_7;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+}
+
 static double GetXAngle(double X, double Y, double Z)
 {
   return X*Kx-Ix+acos((EG*EG-OE*OE+(Y+OOE)*(Y+OOE)+Z*Z)/(2*EG*sqrt((Y+OOE)*(Y+OOE)+Z*Z)))+atan(Z/Y);
@@ -58,6 +78,7 @@ static double GetZAngle(double Z)
 
 Error InitAllMotors(void)
 {
+  InitEndStops();
   return SMotorDriversInit();
 }
 
@@ -111,8 +132,25 @@ Error ZeroOutPosition(void)
   return err;
 }
 
+Error GoToRefer(void)
+{
+  int8_t ready = 0;
+  int32_t x = 0;
+  int32_t y = 0;
+  int32_t z = 0;
+  while(ready != 0x07)
+  {
+    if (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_5) == GPIO_PIN_SET) MotorSetSpeedAndValue(_X, 300, --x); else ready |= (1<<0);
+    if (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_6) == GPIO_PIN_SET) MotorSetSpeedAndValue(_Y, 300, --y); else ready |= (1<<1);
+    if (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_7) == GPIO_PIN_SET) MotorSetSpeedAndValue(_Z, 300, --z); else ready |= (1<<2);
+    while(IsMotorBusy(_X));
+    while(IsMotorBusy(_Y));
+    while(IsMotorBusy(_Z));
+  }
+  return _Success;
+}
+
 double XX, YY, ZZ;
- Error errR;
 Error GoToWithSpeed(double X, double Y, double Z, double speed)
 {
   double l = sqrt((X-curr_X)*(X-curr_X)+(Y-curr_Y)*(Y-curr_Y)+(Z-curr_Z)*(Z-curr_Z));
@@ -124,13 +162,13 @@ Error GoToWithSpeed(double X, double Y, double Z, double speed)
   YY = GetYAngle(X,Y,Z);
   ZZ = GetZAngle(Z);
 
-  errR = _Success;
-  errR = MotorSetSpeedAndValue(_X, speed*cos_a/Kx, GetXAngle(X,Y,Z));
-  if (errR != _Success) goto e;
-  errR = MotorSetSpeedAndValue(_Y, speed*cos_b/Ky, GetYAngle(X,Y,Z));
-  if (errR != _Success) goto e;
-  errR = MotorSetSpeedAndValue(_Z, speed*cos_c/Kz, GetZAngle(Z));
-  if (errR != _Success) goto e;
+  Error err = _Success;
+  err = MotorSetSpeedAndValue(_X, speed*cos_a/Kx, GetXAngle(X,Y,Z));
+  if (err != _Success) goto e;
+  err = MotorSetSpeedAndValue(_Y, speed*cos_b/Ky, GetYAngle(X,Y,Z));
+  if (err != _Success) goto e;
+  err = MotorSetSpeedAndValue(_Z, speed*cos_c/Kz, GetZAngle(Z));
+  if (err != _Success) goto e;
 
   while(IsMotorBusy(_X));
   while(IsMotorBusy(_Y));
@@ -138,5 +176,5 @@ Error GoToWithSpeed(double X, double Y, double Z, double speed)
 
   return _Success;
   e:
-  return errR;
+  return err;
 }

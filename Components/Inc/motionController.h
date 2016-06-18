@@ -38,6 +38,11 @@ Error EnableAllMotors(void);
 Error DisableAllMotors(void);
 
 /**
+  * @brief Move to the referent point
+  */
+Error GoToRefer(void);
+
+/**
   * @brief Zero out all coordinates.
   * Call this function by the end-stop signal
   */

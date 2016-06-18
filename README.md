@@ -12,3 +12,6 @@
 |PA7 |   _Z_motor_DIR   |
 |PB8 |  _Z_motor_CLK    |
 |PA9 |   _Z_motor_EN    |
+|PE5 | _X_axis end stop |
+|PE6 | _Y_axis end stop |
+|PE7 | _Z_axis end stop |
